@@ -132,3 +132,25 @@ performance(xgb.ensemble.validation$ave,validation.sample$churn)
 # It seems as if a single xgboost model gives the best performance out of the box and stacking does not improve the AUC
 # This is probably due to the amount of data we have. However, training each xgboost base model on more than 60% of the data will probably make them 
 # too similar to each other
+
+# Ensemble with xgboost,rf, nnet and a logistic regresission stacking model
+pred.xgb <- predict(xgbFit,test.sample, type="prob")["leave"]
+pred.nn <- predict(nnFit,test.sample, type="prob")["leave"]
+pred.rf <- predict(rfFit,test.sample, type="prob")["leave"]
+model.ensemble <- data.frame(first=pred.xgb$leave,second=pred.nn$leave,third=pred.rf$leave) # combine to dataframe
+
+# Learn the regression
+lrFit.stacked.model <- train(test.sample$churn ~ ., data = model.ensemble,method = "plr",trControl = fitControl, metric="ROC")
+
+# predict on validation set
+pred.xgb <- predict(xgbFit,validation.sample, type="prob")["leave"]
+pred.nn <- predict(nnFit,validation.sample, type="prob")["leave"]
+pred.rf <- predict(rfFit,validation.sample, type="prob")["leave"]
+model.ensemble <- data.frame(first=pred.xgb$leave,second=pred.nn$leave,third=pred.rf$leave) # combine to dataframe
+pred.stack.lr.model <- predict(lrFit.stacked.model,model.ensemble, type="prob")["leave"]
+performance(pred.stack.lr.model$leave,validation.sample$churn)
+
+# Results on the validation set
+# Accuracy     Kappa       AUC  Lift 10% 
+#0.6390000 0.2780412 0.6914136 1.5698267 
+# This stacking model seems to beat a single xgboost model!!

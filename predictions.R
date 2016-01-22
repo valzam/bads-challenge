@@ -14,6 +14,15 @@ performance(pred.xgb.prob,dataset.final$churn)
 x <- data.frame(Customer_ID=ids,EstimatedChurnProbability=pred.xgb.prob$leave)
 write.table(x,"submis_single_xgboost.csv",sep=",",row.names=FALSE)
 
+# 3 model ensemble
+pred.xgb <- predict(xgbFit,dataset.final, type="prob")["leave"]
+pred.nn <- predict(nnFit,dataset.final, type="prob")["leave"]
+pred.rf <- predict(rfFit,dataset.final, type="prob")["leave"]
+model.ensemble <- data.frame(first=pred.xgb$leave,second=pred.nn$leave,third=pred.rf$leave) # combine to dataframe
+pred.stack.lr.model <- predict(lrFit.stacked.model,model.ensemble, type="prob")["leave"]
+performance(pred.stack.lr.model$leave,dataset.final$churn)
+x <- data.frame(Customer_ID=ids,EstimatedChurnProbability=pred.xgb.prob$leave)
+write.table(x,"sub_3_models.csv",sep=",",row.names=FALSE)
 
 # Final submissions
 dataset <- read.csv2("data/test.csv",sep=",", stringsAsFactors = FALSE)
