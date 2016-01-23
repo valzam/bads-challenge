@@ -12,15 +12,15 @@ fitControl <- trainControl(method = "cv",number = 5, allowParallel=T, summaryFun
 # adding more than 3 models did not improve predictions, so in the spirit of keeping model complexity low we retained 3 models
 
 # Used transformation of the dataset
-usedDataset <- dataset.final#[sample(c(1:nrow(dataset.final)),round(nrow(dataset.final))*0.4),]
+usedDataset <- dataset.final#[sample(c(1:nrow(dataset.final)),round(nrow(dataset.final))*0.1),]
 
 index <- c(1:nrow(usedDataset))
-trainingData <- sample(index,round(nrow(usedDataset))*0.7)
+trainingData <- sample(index,round(nrow(usedDataset))*0.9)
 training <- usedDataset[trainingData,]
 test <- usedDataset[-trainingData,]
 # Split the test set into stacked and validation
 index <- c(1:nrow(test))
-testData <- sample(index,round(nrow(test))*0.7)
+testData <- sample(index,round(nrow(test))*1)
 stacked <- test[testData,]
 validation <- test[-testData,]
 # delete the temp datasets
@@ -29,14 +29,14 @@ remove(usedDataset)
 
 # ------------------------------------ TRAINING THE BASE MODELS ---------------------------------------------------------------
 # model xgboost
-xgb.grid <- expand.grid(nrounds = c(250,500), eta = c(0.03,0.05), max_depth = c(6), colsample_bytree = c(0.8), min_child_weight = 1, gamma=0)
+xgb.grid <- expand.grid(nrounds = c(250,500), eta = c(0.03,0.05), max_depth = c(4,6,8), colsample_bytree = c(0.6,0.8,1), min_child_weight = c(1,3,5), gamma=0)
 xgb.optimal <- expand.grid(nrounds = 500,eta = 0.03,max_depth = 6, colsample_bytree = 0.8, min_child_weight = 1,gamma=0)
-xgbFit <- train(churn ~ ., data = training,method = "xgbTree",trControl = fitControl,tuneGrid= xgb.optimal,verbose=TRUE, metric="ROC")
+xgbFit <- train(churn ~ ., data = training,method = "xgbTree",trControl = fitControl,tuneGrid= xgb.grid,verbose=TRUE, metric="ROC")
 
 # model random forest.
-rf.grid <- expand.grid(mtry=c(2,8,16,30))
+rf.grid <- expand.grid(mtry=c(8,16,30,50))
 rf.optimal <- expand.grid(mtry=30)
-rfFit <- train(churn ~ ., data = training, method = "rf", trControl = fitControl, tuneGrid= rf.optimal,verbose=TRUE, metric="ROC")
+rfFit <- train(churn ~ ., data = training, method = "rf", trControl = fitControl, tuneGrid= rf.grid,verbose=TRUE, metric="ROC")
 
 # model glm
 glmFit <- train(churn ~ ., data = training,method = "glm",trControl = fitControl, metric="ROC")
@@ -50,6 +50,12 @@ model.ensemble$pred.glm <- predict(glmFit,stacked, type="prob")["leave"]$leave
 
 # Stacking model: Simple glm regression seems to works best, better than xgboost, and vastly better than just averaging
 lrFit <- train(stacked$churn ~ ., data = model.ensemble,method = "plr",trControl = fitControl,metric="ROC")
+
+#--------------------------------- SAVING THE MODELS ----------------------------------
+save(xgbFit,list=c("xgbFit"),file="results/xgbFit")
+save(rfFit,list=c("rfFit"),file="results/rfFit")
+save(glmFit,list=c("glmFit"),file="results/glmFit")
+save(lrFit,list=c("lrFit"),file="results/lrFit")
 
 #-----------------------------------------MODEL ASSESSMENT-----------------------------------------------------------------------------
 # Predicting on the validation set with the base models
@@ -70,8 +76,3 @@ performance(xgb.single$leave,validation$churn)
 # Accuracy     Kappa       AUC  Lift 10% 
 # 0.6231111 0.2464251 0.6838233 1.5848717 
 # Sadly the ensemble does not do a whole lot better than a single xgboost model. 
-#--------------------------------- SAVING THE MODELS ----------------------------------
-save(xgbFit,list=c("xgbFit"),file="results/xgbFit")
-save(rfFit,list=c("rfFit"),file="results/rfFit")
-save(glmFit,list=c("glmFit"),file="results/glmFit")
-save(lrFit,list=c("lrFit"),file="results/lrFit")

@@ -13,9 +13,9 @@ dataset.imputed[is.na(dataset$RMCALLS),]$RMCALLS <- 0 # No roaming calls
 dataset.imputed[is.na(dataset$RMMOU),]$RMMOU <- 0 # No roaming calls
 dataset.imputed[is.na(dataset$RMREV),]$RMREV <- 0 # No roaming calls
 
-imputeMedian <- function(x,churn){
+imputeMedian <- function(x){
   miss <- is.na(x)
-  x[miss] <- median(x[churn=="leave"],na.rm = T)
+  x[miss] <- 0
   return(x)
 }
 
@@ -37,11 +37,11 @@ imputeZero <- function(x){
 # Making dummy variables would probably result in near zero variance features
 # Imputing the missing with an extreme value like -999999 does not seem to affect the xgboost model very much
 # Probably because the number of missings is very small (around 400 for CHANGE_MOU and CHANGE_REV and around 200 for the others)
-# We decided to simply impute the median of the churning cases into all missing values
+# We decided to simply impute the missing features with 0
 any(is.na(dataset.imputed))
 for (i in 1:length(dataset.imputed)) {
   if(is.numeric(dataset.imputed[,i])){
-    dataset.imputed[,i] <- imputeMedian(dataset.imputed[,i],dataset.imputed$churn)
+    dataset.imputed[,i] <- imputeMedian(dataset.imputed[,i])
   }
 }
 any(is.na(dataset.imputed))
