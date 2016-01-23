@@ -134,11 +134,17 @@ encodeFeatures <- function(x){
   # make numerical the number of subs they have
   cats$NUMBER_OF_SUBS <- as.numeric(cats$UNIQSUBS)
   
-  churn <- cats$CHURN
-  churn <- factor(churn,levels=c(0,1),labels=c("stay","leave"))
   id <- cats$CUSTOMER_ID
   cats <- cats[,!names(cats) %in% categorical_features]
   
-  return( cbind(x,cats,churn,id))
+  if ("churn" %in% colnames(cats)) {
+    churn <- cats$CHURN
+    churn <- factor(churn,levels=c(0,1),labels=c("stay","leave"))
+    result <- cbind(x,cats,churn,id)
+  } else {
+    result <- cbind(x,cats,id)
+  }
+
+  return( result)
   
 }

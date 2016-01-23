@@ -13,22 +13,35 @@ dataset.imputed[is.na(dataset$RMCALLS),]$RMCALLS <- 0 # No roaming calls
 dataset.imputed[is.na(dataset$RMMOU),]$RMMOU <- 0 # No roaming calls
 dataset.imputed[is.na(dataset$RMREV),]$RMREV <- 0 # No roaming calls
 
-imputeMedian <- function(x){
+imputeMedian <- function(x,churn){
   miss <- is.na(x)
-  x[miss] <- median(x,na.rm = T)
+  x[miss] <- median(x[churn=="leave"],na.rm = T)
   return(x)
 }
 
 imputeZero <- function(x){
   miss <- is.na(x)
-  x[miss] <- median(x,na.rm = T)
+  x[miss] <- 0
   return(x)
 }
 
+# Usage based features with NA seem to have a higher possibility of churn
+# The tables for the most important features (according to xgboost)
+# CHANGE_MOU, CHANGE_REV.. 
+# stay leave 
+# 121   353 
+# TOTMRC_MEAN, MOU_RANGE and most other range and mean features
+# stay leave 
+# 67   139 
+# To make use of this information we should encode the missings in a special way and not just impute the mean
+# Making dummy variables would probably result in near zero variance features
+# Imputing the missing with an extreme value like -999999 does not seem to affect the xgboost model very much
+# Probably because the number of missings is very small (around 400 for CHANGE_MOU and CHANGE_REV and around 200 for the others)
+# We decided to simply impute the median of the churning cases into all missing values
 any(is.na(dataset.imputed))
 for (i in 1:length(dataset.imputed)) {
   if(is.numeric(dataset.imputed[,i])){
-    dataset.imputed[,i] <- imputeMedian(dataset.imputed[,i])
+    dataset.imputed[,i] <- imputeMedian(dataset.imputed[,i],dataset.imputed$churn)
   }
 }
 any(is.na(dataset.imputed))

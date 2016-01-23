@@ -143,6 +143,7 @@ model.ensemble <- data.frame(first=pred.xgb$leave,second=pred.nn$leave,third=pre
 lrFit.stacked.model <- train(test.sample$churn ~ ., data = model.ensemble,method = "plr",trControl = fitControl, metric="ROC")
 
 # predict on validation set
+validation.sample <- test
 pred.xgb <- predict(xgbFit,validation.sample, type="prob")["leave"]
 pred.nn <- predict(nnFit,validation.sample, type="prob")["leave"]
 pred.rf <- predict(rfFit,validation.sample, type="prob")["leave"]

@@ -15,3 +15,10 @@ numerical_features <-c("ADJMOU","ADJQTY","ADJREV","ATTEMPT_MEAN","ATTEMPT_RANGE"
 source('imputeData.R')
 #select features
 source("selectFeatures.R")
+
+
+# Loading trained sets
+load("results/xgbFit")
+load("results/glmFit")
+load("results/rfFit")
+load("results/lrFit")
